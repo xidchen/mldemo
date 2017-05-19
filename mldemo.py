@@ -8,13 +8,13 @@ from string import punctuation
 from itertools import groupby
 import enchant
 
-date_format = ['MDY', 'DMY']
-months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
 prep_file = 'C:\\Users\\sheldonc\\Documents\\CA CS ml demo\\demo code\\prepositions.txt'
 prepositions = []
 with open(prep_file, 'r') as f:
     for line in f:
         prepositions.append(line.strip().lower())
+released_date = ''
 
 std_path = 'C:\\Users\\sheldonc\\Documents\\CA CS ml demo\\demo code\\standard-label-simple.csv'
 std = read_csv(std_path, header=0, names=['label', 'text'])
@@ -26,12 +26,12 @@ for text in std.text:
     filtered_text.append(' '.join(filtered_word))
 vector = CountVectorizer()
 std_dtm = vector.fit_transform(filtered_text)
-filename = 'C:\\Users\\sheldonc\\Documents\\CA CS ml demo\\csv files\\Book6.csv'
+filename = 'C:\\Users\\sheldonc\\Documents\\CA CS ml demo\\csv files\\Book7.csv'
 
 with open(filename, 'r') as f:
     for line in f:
         string = line.strip().replace('(', '').replace(')', '').replace('"', '')
-        string = string.replace(',,', '.').replace(',', ' ').split('.')
+        string = string.replace(',,', '.').replace(',', ' ').replace(':', ' ').split('.')
         for substring in string:
             input_dtm = vector.transform([substring.lower()])
             if norm(input_dtm.toarray()) == 0:
@@ -54,8 +54,8 @@ with open(filename, 'r') as f:
                             print(label_class[i] + ': ' + 'no')
                             break
                 if label_class[i] == 'commission':
-                    for (w, t) in pos_tag(word_tokenize(s)):
-                        if t == 'CD':
+                    for (w, sword) in pos_tag(word_tokenize(s)):
+                        if sword == 'CD':
                             print(label_class[i] + ': ' + w + '%')
                             break
                 if label_class[i] == 'infant commission':
@@ -63,8 +63,8 @@ with open(filename, 'r') as f:
                         if w in ['no', 'not']:
                             print(label_class[i] + ': ' + 'no')
                             break
-                    for (w, t) in pos_tag(word_tokenize(s)):
-                        if t == 'CD':
+                    for (w, sword) in pos_tag(word_tokenize(s)):
+                        if sword == 'CD':
                             print(label_class[i] + ': ' + w + '%')
                             break
                 if label_class[i] == 'sale restriction':
@@ -80,19 +80,46 @@ with open(filename, 'r') as f:
                                 print(label_class[i] + ': ' + w)
                                 break
                 if label_class[i] in ['ticketing period', 'travelling period']:
-                    # print(s)
-                    new_w = []
-                    for w in s.split():
-                        if w.isalnum() and not w.isalpha() and not w.isdecimal():
-                            v = []
-                            for _, g in groupby(w, str.isalpha):
-                                v.append(''.join(list(g)))
-                            if v[0] in prepositions:
-                                new_w.append(v[0])
-                                new_w.append(''.join(v[1:]))
-                            else:
-                                new_w.append(''.join(v))
+                    sword = s.split()
+                    new_sword = []
+                    for j in range(len(sword)):
+                        # Process case like "RELEASED: DEC 29, 201514-"
+                        if sword[j].lower() == 'released':
+                            if sword[j+1].lower() in months or sword[j+2].lower() in months:
+                                sword[j+3] = sword[j+3][:4]
+                                if sword[j+3].isdecimal():
+                                    released_date = ' '.join(sword[j+1:j+4])
+                        # Process case like "Ticket must be issued on/before31JAN, 2016"
+                        if sword[j].isalnum() and not sword[j].isalpha() and not sword[j].isdecimal():
+                            for k, g in groupby(sword[j], str.isalpha):
+                                new_sword.append(''.join(list(g)))
                         else:
-                            new_w.append(w)
-                    new_s = ' '.join(new_w)
-                    print(new_s)
+                            new_sword.append(sword[j])
+                    new_s = ' '.join(new_sword)
+                    for j in range(len(new_sword)):
+                        if new_sword[j] in prepositions and (new_sword[j+1].isdecimal() or new_sword[j+1].lower() in months):
+                            # "Starting from Mar27, 2016 to Dec31, 2016"
+                            if j+7 in range(len(new_sword)) and new_sword[j+4] in prepositions:
+                                if new_sword[j+5].isdecimal() or new_sword[j+5].lower() in months:
+                                    u = ' '.join(new_sword[j:j+8])
+                                    print(label_class[i] + ': ' + u)
+                                    break
+                            # Process case like "Ticket must be issued on/before 29FEB, 2016"
+                            elif new_sword[j-1] in prepositions:
+                                u = ' '.join(new_sword[j-1:j+4])
+                                print(label_class[i] + ': ' + u)
+                                break
+                            # Process case like "Ticketing valid until 18FEB16"
+                            else:
+                                u = ' '.join(new_sword[j:j+4])
+                                print(label_class[i] + ': ' + u)
+                                break
+                        # Process case like "TICKETING PERIOD:      NOW - FEB 02, 2016"
+                        # Process case like "TRAVELING DATES:      NOW - FEB 10,2016    FEB 22,2016 - MAY 12,2016"
+                        if new_sword[j] in ['-'] and (new_sword[j+1].lower() in months or new_sword[j+2].lower() in months):
+                            if new_sword[j-1].lower() == 'now':
+                                u = released_date + ' - ' + ' '.join(new_sword[j+1:j+4])
+                                print(label_class[i] + ': ' + u)
+                            elif new_sword[j-3].lower() in months or new_sword[j-2].lower() in months:
+                                u = ' '.join(new_sword[j-3:j+4])
+                                print(label_class[i] + ': ' + u)
