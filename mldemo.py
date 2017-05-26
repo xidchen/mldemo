@@ -8,7 +8,11 @@ from itertools import groupby
 import enchant
 import re
 
-months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+month_file = 'C:\\Users\\sheldonc\\Documents\\CA CS ml demo\\demo code\\month_list.txt'
+months = []
+with open(month_file, 'r') as f:
+    for line in f:
+        months.append(line.strip().lower())
 prep_file = 'C:\\Users\\sheldonc\\Documents\\CA CS ml demo\\demo code\\prepositions.txt'
 prepositions = []
 with open(prep_file, 'r') as f:
@@ -21,12 +25,11 @@ std = read_csv(std_path, header=0, names=['label', 'text'])
 stop_words = set(stopwords.words("english"))
 filtered_text = []
 for text in std.text:
-    word = word_tokenize(text)
-    filtered_word = [w for w in word if w not in stop_words]
+    filtered_word = [w for w in word_tokenize(text) if w not in stop_words]
     filtered_text.append(' '.join(filtered_word))
 vector = CountVectorizer()
 std_dtm = vector.fit_transform(filtered_text)
-filename = 'C:\\Users\\sheldonc\\Documents\\CA CS ml demo\\larger set\\T1 csv files\\T1-1.csv'
+filename = 'C:\\Users\\sheldonc\\Documents\\CA CS ml demo\\larger set\\T23 csv files\\T23-1.csv'
 
 with open(filename, 'r') as f:
     for line in f:
@@ -88,22 +91,21 @@ with open(filename, 'r') as f:
                         else:
                             nw.append(w[j])
                     for j in range(len(nw)):
-                        if nw[j] in prepositions and (nw[j+1].lower() in months or nw[j+2].lower() in months):
-                            # Process case like "Starting from Mar27, 2016 to Dec31, 2016"
-                            if j+7 in range(len(nw)) and nw[j+4] in prepositions:
-                                if nw[j+5].lower() in months or nw[j+6].lower() in months:
-                                    u = ' '.join(nw[j:j+8])
+                        if j+2 in range(len(nw)) and nw[j] in prepositions:
+                            if nw[j+1].lower() in months or nw[j+2].lower() in months:
+                                # Process case like "Starting from Mar27, 2016 to Dec31, 2016"
+                                if j+7 in range(len(nw)) and nw[j+4] in prepositions:
+                                    if nw[j+5].lower() in months or nw[j+6].lower() in months:
+                                        u = ' '.join(nw[j:j+8])
+                                        print(label_class[i] + ': ' + u)
+                                # Process case like "Ticket must be issued on/before 29FEB, 2016"
+                                elif nw[j-1] in prepositions:
+                                    u = ' '.join(nw[j-1:j+4])
                                     print(label_class[i] + ': ' + u)
-                                    break
-                            # Process case like "Ticket must be issued on/before 29FEB, 2016"
-                            elif nw[j-1] in prepositions:
-                                u = ' '.join(nw[j-1:j+4])
-                                print(label_class[i] + ': ' + u)
-                                break
-                            # Process case like "Ticketing valid until 18FEB16"
-                            else:
-                                u = ' '.join(nw[j:j+4])
-                                print(label_class[i] + ': ' + u)
+                                # Process case like "Ticketing valid until 18FEB16"
+                                else:
+                                    u = ' '.join(nw[j:j+4])
+                                    print(label_class[i] + ': ' + u)
                         # Process case like "TICKETING PERIOD:      NOW - FEB 02, 2016"
                         # Process case like "TRAVELING DATES:      NOW - FEB 10,2016    FEB 22,2016 - MAY 12,2016"
                         if j+2 in range(len(nw)) and nw[j] in ['-']:

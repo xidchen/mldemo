@@ -2,15 +2,18 @@ label, text
 code share indicator, code share
 commission, commission
 infant commission, infant commission
-sale restriction, apply sales ticket issuance usa
-sale restriction, sale ticket issuance usa transportation originating usa
+sale restriction, apply sales issuance
+sale restriction, sale issuance transportation originating
 ticketing period, ticketing valid
+ticketing period, ticket issued
 ticketing period, tickets issued
-ticketing period, ticketing effective period
+ticketing period, effective period
 ticketing period, ticketing period
 ticketing period, ticketing starting
-ticketing period, valid ticketing travelling
+ticketing period, valid ticketing
 tour code, tour code
 travelling period, traveling dates
+travelling period, travel period
+travelling period, traveling period
 travelling period, travelling period
-travelling period, valid ticketing travelling
+travelling period, valid travelling
